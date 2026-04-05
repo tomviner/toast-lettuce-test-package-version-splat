@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import product
 import sys
-from typing import Iterable
+from typing import Iterable, Sequence
 
 
 @dataclass(frozen=True)
@@ -19,11 +19,21 @@ class VersionParts:
         return f"{self.epoch}{self.release}{self.pre}{self.post}{self.dev}{self.local}"
 
 
+DEFAULT_RELEASES = ("1.0.0",)
+
+
+def _normalize_releases(releases: Sequence[str]) -> tuple[str, ...]:
+    normalized = tuple(release.strip() for release in releases if release.strip())
+    if not normalized:
+        raise ValueError("at least one release must be provided")
+    return normalized
+
+
 def canonical_public_versions(
-    release: str = "1.0",
+    releases: Sequence[str] = DEFAULT_RELEASES,
     *,
     include_epoch: bool = True,
-    include_local: bool = True,
+    include_local: bool = False,
 ) -> list[str]:
     """Return representative canonical PEP 440 combinations.
 
@@ -31,9 +41,7 @@ def canonical_public_versions(
     Numbered segments use `1` as a representative value.
     """
 
-    release = release.strip()
-    if not release:
-        raise ValueError("release must be non-empty")
+    releases = _normalize_releases(releases)
 
     epochs = ("", "1!") if include_epoch else ("",)
     pres = ("", "a1", "b1", "rc1")
@@ -43,29 +51,30 @@ def canonical_public_versions(
 
     versions: list[str] = []
     seen: set[str] = set()
-    for epoch, pre, post, dev, local in product(epochs, pres, posts, devs, locals_):
-        rendered = VersionParts(
-            epoch=epoch,
-            release=release,
-            pre=pre,
-            post=post,
-            dev=dev,
-            local=local,
-        ).render()
-        if rendered not in seen:
-            seen.add(rendered)
-            versions.append(rendered)
+    for release in releases:
+        for epoch, pre, post, dev, local in product(epochs, pres, posts, devs, locals_):
+            rendered = VersionParts(
+                epoch=epoch,
+                release=release,
+                pre=pre,
+                post=post,
+                dev=dev,
+                local=local,
+            ).render()
+            if rendered not in seen:
+                seen.add(rendered)
+                versions.append(rendered)
     return versions
 
 
 def format_version_matrix(
-    release: str = "1.0",
+    releases: Sequence[str] = DEFAULT_RELEASES,
     *,
     include_epoch: bool = True,
-    include_local: bool = True,
+    include_local: bool = False,
 ) -> str:
     versions = canonical_public_versions(
-        release=release,
+        releases=releases,
         include_epoch=include_epoch,
         include_local=include_local,
     )
@@ -78,20 +87,26 @@ def _parse_bool_flag(args: Iterable[str], flag: str) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    release = "1.0"
+    releases = list(DEFAULT_RELEASES)
 
     if "--release" in args:
-        index = args.index("--release")
-        try:
-            release = args[index + 1]
-        except IndexError as exc:
-            raise SystemExit("--release requires a value") from exc
+        releases = []
+        index = 0
+        while index < len(args):
+            if args[index] != "--release":
+                index += 1
+                continue
+            try:
+                releases.append(args[index + 1])
+            except IndexError as exc:
+                raise SystemExit("--release requires a value") from exc
+            index += 2
 
     include_epoch = not _parse_bool_flag(args, "--no-epoch")
-    include_local = not _parse_bool_flag(args, "--no-local")
+    include_local = _parse_bool_flag(args, "--include-local")
     print(
         format_version_matrix(
-            release=release,
+            releases=releases,
             include_epoch=include_epoch,
             include_local=include_local,
         )

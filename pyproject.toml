@@ -1,5 +1,5 @@
 [project]
-name = "toast-lettuce-test-package-omni-version"
+name = "toast-lettuce-test-package-version-splat"
 version = "0.1.0"
 description = "Publish versions covering every legal PEP 440 suffix form."
 readme = "README.md"
@@ -10,7 +10,7 @@ requires-python = ">=3.14"
 dependencies = []
 
 [project.scripts]
-canonical-version-matrix = "toast_lettuce_test_package_omni_version.versions:main"
+canonical-version-matrix = "toast_lettuce_test_package_version_splat.versions:main"
 
 [build-system]
 requires = ["uv_build>=0.11.2,<0.12.0"]
