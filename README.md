@@ -51,6 +51,14 @@ Query published TestPyPI versions that match a specifier:
 ./scripts/matching-versions.sh '>=1!1.0.0rc1,<1!1.0.1' minmax
 ```
 
+Ask `uv` which lowest and highest matching versions it would actually select:
+
+```sh
+./scripts/resolution-endpoints.sh '==1.0.0.*'
+./scripts/resolution-endpoints.sh '~=1.0.0'
+./scripts/resolution-endpoints.sh '>=1.0.0.dev1,<1.0.1' --pre
+```
+
 Set the project version only through `uv version`:
 
 ```sh
